@@ -39,7 +39,7 @@ COPY Pipfile* ./
 
 RUN set -eux \
   && echo "Installing pipenv" \
-    && python3 -m pip install --no-cache-dir --upgrade pipenv==2024.4.0 \
+    && python3 -m pip install --no-cache-dir --upgrade pipenv==2024.4.0 -i https://pypi.tuna.tsinghua.edu.cn/simple\
   && echo "Generating requirement.txt" \
     && pipenv requirements > requirements.txt
 
@@ -99,10 +99,13 @@ ARG RUNTIME_PACKAGES="\
   # OCRmyPDF dependencies
   tesseract-ocr \
   tesseract-ocr-eng \
-  tesseract-ocr-deu \
-  tesseract-ocr-fra \
-  tesseract-ocr-ita \
-  tesseract-ocr-spa \
+  tesseract-ocr-chi-sim \
+  tesseract-ocr-chi-tra \
+  # https://tesseract-ocr.github.io/tessdoc/Data-Files-in-different-versions.html
+  # tesseract-ocr-deu \ removed by zf 2024121202018
+  # tesseract-ocr-fra \ removed by zf 2024121202018
+  # tesseract-ocr-ita \ removed by zf 2024121202018
+  # tesseract-ocr-spa \ removed by zf 2024121202018
   unpaper \
   pngquant \
   jbig2dec \
@@ -159,6 +162,10 @@ RUN set -eux \
     && rm --recursive --force --verbose /var/lib/apt/lists/* \
   && echo "Installing supervisor" \
     && python3 -m pip install --default-timeout=1000 --upgrade --no-cache-dir supervisor==4.2.5
+
+# Added by zf
+# 2024121202018
+# RUN apt-get install tesseract-ocr-chi-sim
 
 # Copy gunicorn config
 # Changes very infrequently
@@ -224,6 +231,11 @@ ARG BUILD_PACKAGES="\
   default-libmysqlclient-dev \
   pkg-config"
 
+# 替换 APT 源为清华大学
+RUN echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free" > /etc/apt/sources.list && \
+echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free" >> /etc/apt/sources.list && \
+echo "deb http://mirrors.tuna.tsinghua.edu.cn/debian bookworm-updates main contrib non-free" >> /etc/apt/sources.list
+
 # hadolint ignore=DL3042
 RUN --mount=type=cache,target=/root/.cache/pip/,id=pip-cache \
   set -eux \
@@ -234,15 +246,17 @@ RUN --mount=type=cache,target=/root/.cache/pip/,id=pip-cache \
   && echo "Installing Python requirements" \
     && curl --fail --silent --show-error --location \
     --output psycopg_c-3.2.3-cp312-cp312-linux_x86_64.whl \
-    https://github.com/paperless-ngx/builder/releases/download/psycopg-3.2.3/psycopg_c-3.2.3-cp312-cp312-linux_x86_64.whl \
+    #https://github.com/paperless-ngx/builder/releases/download/psycopg-3.2.3/psycopg_c-3.2.3-cp312-cp312-linux_aarch64.whl \
+    https://www.benbenrobot.cn:6543/static/files/psycopg_c-3.2.3-cp312-cp312-linux_x86_64.whl \
     && curl --fail --silent --show-error --location \
     --output psycopg_c-3.2.3-cp312-cp312-linux_aarch64.whl  \
-    https://github.com/paperless-ngx/builder/releases/download/psycopg-3.2.3/psycopg_c-3.2.3-cp312-cp312-linux_aarch64.whl \
+    https://www.benbenrobot.cn:6543/static/files/psycopg_c-3.2.3-cp312-cp312-linux_x86_64.whl  \ 
+    #https://github.com/paperless-ngx/builder/releases/download/psycopg-3.2.3/psycopg_c-3.2.3-cp312-cp312-linux_aarch64.whl \
     && python3 -m pip install --default-timeout=1000 --find-links . --requirement requirements.txt \
   && echo "Installing NLTK data" \
-    && python3 -W ignore::RuntimeWarning -m nltk.downloader -d "/usr/share/nltk_data" snowball_data \
-    && python3 -W ignore::RuntimeWarning -m nltk.downloader -d "/usr/share/nltk_data" stopwords \
-    && python3 -W ignore::RuntimeWarning -m nltk.downloader -d "/usr/share/nltk_data" punkt_tab \
+    && python3 -i https://pypi.tuna.tsinghua.edu.cn/simple -W ignore::RuntimeWarning -m nltk.downloader -d "/usr/share/nltk_data" snowball_data \
+    && python3 -i https://pypi.tuna.tsinghua.edu.cn/simple -W ignore::RuntimeWarning -m nltk.downloader -d "/usr/share/nltk_data" stopwords \
+    && python3 -i https://pypi.tuna.tsinghua.edu.cn/simple -W ignore::RuntimeWarning -m nltk.downloader -d "/usr/share/nltk_data" punkt_tab \
   && echo "Cleaning up image" \
     && apt-get --yes purge ${BUILD_PACKAGES} \
     && apt-get --yes autoremove --purge \

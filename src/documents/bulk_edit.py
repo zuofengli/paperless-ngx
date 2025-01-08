@@ -280,7 +280,10 @@ def rotate(doc_ids: list[int], degrees: int) -> Literal["OK"]:
 
     return "OK"
 
-
+### merge multiple files
+### BUG20250107-1900: If the original file data type is not pdf, no file will be generated and errors; 
+# In case there is any pdf file, only that pdf file will be merged into new one.
+# Need merge files with archive documents (all of them in pdf file format)  
 def merge(
     doc_ids: list[int],
     metadata_document_id: int | None = None,
@@ -299,8 +302,12 @@ def merge(
     # use doc_ids to preserve order
     for doc_id in doc_ids:
         doc = qs.get(id=doc_id)
+
+
         try:
-            with pikepdf.open(str(doc.source_path)) as pdf:
+            #with pikepdf.open(str(doc.source_path)) as pdf:
+            #BUG20250107-1900
+            with pikepdf.open(str(doc.archive_path)) as pdf:
                 version = max(version, pdf.pdf_version)
                 merged_pdf.pages.extend(pdf.pages)
             affected_docs.append(doc.id)
