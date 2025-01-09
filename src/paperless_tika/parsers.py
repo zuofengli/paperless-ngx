@@ -110,6 +110,13 @@ class TikaDocumentParser(DocumentParser):
                 route.pdf_format(PdfAFormat.A3b)
 
             route.convert(document_path)
+            ### DEBUG202501091449: defaultly Gotenberg will split one big excel sheet into multiple pages.
+            ### we need set a parameter to make it generate one page
+            # If input file is Excel file, set singlePageSheets= true
+            if document_path.suffix.lower() in ('.xlsx', '.xls', '.xlsm', '.xlsb', '.odf', '.ods', '.odt'):
+                route._form_data['singlePageSheets'] = 'true'
+            ###
+
 
             try:
                 response = route.run()
